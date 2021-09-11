@@ -1,0 +1,11 @@
+*.pyc
+__pycache__
+env
+.idea/
+.env
+app/users.sqlite
+app/db.sqlite
+app/utils/get_l*
+sitemap.xml
+docs/
+.vscode/
