@@ -14,7 +14,7 @@ URL_ROOT  = os.environ["URL_ROOT"]
 os.system("rm " + BASE_DIR + "/num_error.csv")
 
 csv_path = "/home/maxime/dev/InventaireParisHistorique_files/exports/Inventaire_general_phototheque.csv"
-#max = 50
+max = 100
 
 with open(csv_path, 'r') as f:
     f_o = csv.reader(f, delimiter = '|')
@@ -92,17 +92,16 @@ with open(csv_path, 'r') as f:
                 post_data["Date_inventaire"] = line[32]
                 post_data["Auteur"] = line[33]
             r = requests.post(URL_ROOT + "/insert/" + str(line[0]), data=json.dumps(post_data), headers=post_headers)
-            #i+=1
+            i+=1
             if r.status_code > 400:
                 ko += 1
                 # mettre le num d'inv en mémoire quelque part avec son message
                 with open(BASE_DIR + "/num_error.csv", "a") as f:
                     f_o = csv.writer(f)
-                    f.writerow([line[0]])
+                    f_o.writerow([line[0]])
             else:
                 ok +=1
             
-            sys.stdout.write("Process " + str(line[0]) + " -- OK : "+str(ok) +" -- KO : "+str(ko)+"\r")
+            sys.stdout.write("\r" + "Process " + str(line[0]) + " -- OK : "+str(ok) +" -- KO : "+str(ko))
             sys.stdout.flush()
-            sys.stdout.write('\r')
-            sys.stdout.flush()
+    print("\n")

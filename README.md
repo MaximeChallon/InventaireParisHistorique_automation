@@ -9,3 +9,6 @@ TODO:
     *  depuis base num
     * depuis groupe sauvegarde
 * indexation automatique IA avec InventaireParisHistorique_ai
+
+
+* créer un service de cotes et d'attribution de nouveaux numéros: OK avec create_inventory_number pour les num d'inventaire, et /insert/num_inv avec body post pour modif la cote
