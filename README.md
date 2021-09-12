@@ -8,4 +8,4 @@ TODO:
 * fonds numérique: 
     *  depuis base num
     * depuis groupe sauvegarde
-* indexation automatique IA
+* indexation automatique IA avec InventaireParisHistorique_ai
