@@ -11,10 +11,14 @@ dotenv.load_dotenv(os.path.join(BASE_DIR, '.env'))
 DEBUG = os.environ['DEBUG']
 KEY_WS = os.environ["KEY_WS"]
 URL_ROOT  = os.environ["URL_ROOT"]
-os.system("rm " + BASE_DIR + "/num_error.csv")
+try:
+    os.system("rm " + BASE_DIR + "/num_error.csv")
+except:
+    pass
 
 csv_path = "/home/maxime/dev/InventaireParisHistorique_files/exports/Inventaire_general_phototheque.csv"
 max = 100
+min = 4500
 
 with open(csv_path, 'r') as f:
     f_o = csv.reader(f, delimiter = '|')
@@ -22,15 +26,18 @@ with open(csv_path, 'r') as f:
     i = 0
     ok = 0
     ko = 0
+    l = 0
     for line in f_o:
         # récupérer les numéros traités
-        if line[33] and i <= max:
+        if line[33] and i <= max and l>= min:
             post_headers = {"ws-key": KEY_WS}
             post_data = {"type": "PHOTO"}
             if line[1]:
                 post_data["Rue"] = line[1]
             if line[2]:
                 post_data["N_rue"] = line[2]
+            if line[3]:
+                post_data["Site"] = line[3]
             if line[4]:
                 post_data["Arrondissement"] = line[4]
             if line[5]:
@@ -104,4 +111,5 @@ with open(csv_path, 'r') as f:
             
             sys.stdout.write("\r" + "Process " + str(line[0]) + " -- OK : "+str(ok) +" -- KO : "+str(ko))
             sys.stdout.flush()
+        l += 1
     print("\n")

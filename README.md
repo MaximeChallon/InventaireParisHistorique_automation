@@ -1,8 +1,9 @@
 Processus de création de la base finale
 * créer une base vide db_finale.sqlite dans InventaireParisHistorique_services/app/
 * y lancer le script SQL de création des tables de InventaireParisHistorique_documentation/modelisation/
-* lancer InventaireParisHistorique_services/app/utils/fill_concept.py
-* lancer InventaireParisHistorique_automation/fonds_physique/csv_to_dbfinale.py 
+* Remplir les référentiels: lancer InventaireParisHistorique_services/app/utils/fill_concept.py
+* Remplir les photos issues du fonds physique: lancer InventaireParisHistorique_automation/fonds_physique/csv_to_dbfinale.py 
+* Remplir les photos issues du fonds numérique: lancer InventaireParisHistorique_automation/fonds_numerique/basenum_to_dbfinale.py
 
 TODO:
 * fonds numérique: 
