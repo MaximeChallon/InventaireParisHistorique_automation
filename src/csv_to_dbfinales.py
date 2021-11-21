@@ -17,8 +17,8 @@ except:
     pass
 
 csv_path = "/home/maxime/dev/InventaireParisHistorique_files/exports/Inventaire_general_phototheque.csv"
-max = 100
-min = 4500
+max = 2000
+min = 4335
 
 with open(csv_path, 'r') as f:
     f_o = csv.reader(f, delimiter = '|')

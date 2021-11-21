@@ -6,6 +6,9 @@ import dateparser
 import re
 import json
 import requests
+from datetime import date
+import dateutil
+from utils.extract_keywords import keywords
 
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -24,7 +27,7 @@ csv_path = "/home/maxime/Téléchargements/PH/Requête6.csv"
 img_sourcedir = "/home/maxime/Téléchargements/PH/2000/"
 
 max = 5
-min = 15
+min = 0
 
 with open(csv_path, "r") as f:
     f_o = csv.reader(f, delimiter="|")
@@ -53,6 +56,7 @@ with open(csv_path, "r") as f:
             mh = line[47]
             photographe = line[52]
             droit = line[54]
+            mots_cles = line[57]
             rue = line[62]
             n_rue = line[63] + line[64]
             code_postal = line[66]
@@ -70,27 +74,36 @@ with open(csv_path, "r") as f:
             if cote_base_num:
                 post_data["Cote_base"] = cote_base_num
             if designation:
-                post_data["Site"] = designation
+                designation = (re.sub(r"([^\_ \.]+\_)+[^\_ \.]+", "",designation)).strip().upper()
+                if designation != "" and designation:
+                    post_data["Site"] = designation
+                else:
+                    post_data["Site"] = "IMMEUBLE"
             if annee_prise_vue:
                 post_data["Prise_vue"] =annee_prise_vue
             if date_prise_vue:
-                post_data["Prise_vue"] = (dateparser.parse(date_prise_vue ).date()).strftime("%Y/%m/%d")
+                try:
+                    date_prise_vue = (dateparser.parse(date_prise_vue ).date()).strftime("%Y/%m/%d")
+                except:
+                    date_prise_vue = None
+                if date_prise_vue:
+                    post_data["Prise_vue"] =date_prise_vue
             if commentaire:
                 post_data["Note"] =  commentaire
             if commentaire2:
                 post_data["Note2"] =  commentaire2
             if date_entree_base:
-                post_data["Entree_base_num"] = (dateparser.parse(date_entree_base ).date()).strftime("%Y/%m/%d")
+                post_data["Entree_base_num"] = (dateparser.parse(date_entree_base, settings={'DEFAULT_LANGUAGES': ["fr"]})).strftime("%Y/%m/%d")
             if architecte:
                 post_data["Architecte"] = architecte
             if date_construction:
                 post_data["Construction"] = date_construction
-            if "classé" in mh or "classe" in mh or "Classé" in mh:
+            if ("classé" in mh or "classe" in mh or "Classé" in mh) and "non" not in mh and "Non" not in mh:
                 post_data["MH"] = "OUI"
             else:
                 post_data["MH"] = "NON"
             if photographe:
-                post_data["Photographe"] = re.sub(r'(.*) ([^ ]+)', r'\2, \1',photographe)
+                post_data["Photographe"] = (re.sub(r'(.*) ([^ ]+)', r'\2, \1',photographe)).upper()
             if arrondissement:
                 post_data["Arrondissement"] = arrondissement
             if rue:
@@ -110,7 +123,10 @@ with open(csv_path, "r") as f:
             if couleur:
                 post_data["Couleur"] = couleur.upper()
             if support:
-                post_data["Support"] = support.upper()
+                if support == "Numérique":
+                    post_data["Support"]= "NUMERIQUE"
+                else:
+                    post_data["Support"] = support.upper()
             if generalite:
                 if generalite.upper() == 'ARCHITECTURE PRIVÉE':
                     post_data["Generalite"] = "PRIVÉE"
@@ -118,11 +134,28 @@ with open(csv_path, "r") as f:
                     post_data["Generalite"] = "PUBLIQUE"
                 else :
                     post_data["Generalite"] =generalite.upper().replace('ARCHITECTURE ', '').replace(', ', '_').replace(' ET ', '_').replace('RAIRES', 'RAIRE')
+            #extraction de mots-clés
+            mots_cles_commentaire = keywords(commentaire).join_with_sql_referentiel({'db_system': 'sqlite','db_url': '/home/maxime/dev/InventaireParisHistorique_services/app/db_finale.sqlite'},"049c90d062b5")
+
+            mots_cles_commentaire2 = keywords(commentaire2).join_with_sql_referentiel({'db_system': 'sqlite','db_url': '/home/maxime/dev/InventaireParisHistorique_services/app/db_finale.sqlite'},"049c90d062b5")
+
+            mots_cles_motscles = keywords(mots_cles).join_with_sql_referentiel({'db_system': 'sqlite','db_url': '/home/maxime/dev/InventaireParisHistorique_services/app/db_finale.sqlite'},"049c90d062b5")
+
+            mots_cles_designation = keywords(line[3] + "." + line[2]).join_with_sql_referentiel({'db_system': 'sqlite','db_url': '/home/maxime/dev/InventaireParisHistorique_services/app/db_finale.sqlite'},"049c90d062b5")
+            motscles = list(dict.fromkeys(mots_cles_commentaire + mots_cles_commentaire2 + mots_cles_motscles + mots_cles_designation))
+            if motscles:    
+                post_data["Mots_cles"] = str(   motscles  )
+
             post_data["Cote"] = "BASE_NUM"
-            # générer un num inventaire avant envoi
-            num_inv = (json.loads(requests.post(URL_ROOT + "/create_inventory_number/" + "BASE_NUM").content))["Numero_inventaire"]
+            # activité d'inventaire
+            post_data["Auteur"] = "OUTIL DE MIGRATION AUTOMATIQUE"
+            post_data["Date_inventaire"] = (date.today()).strftime("%Y/%m/%d")
+            # générer un num inventaire avant envoi si l'instance n'existe pas encore
+            try:
+                num_inv = json.loads(requests.post(URL_ROOT + "/select/" + str(id_metier) ,data=json.dumps({"type":"Identifiant de la base de numérisations"}),  headers={"ws_key":KEY_WS}).content)["num_inv"]
+            except:
+                num_inv = (json.loads(requests.post(URL_ROOT + "/create_inventory_number/" + "BASE_NUM").content))["Numero_inventaire"]
             r = requests.post(URL_ROOT + "/insert/" + str(num_inv), data=json.dumps(post_data), headers=post_headers)
-            i+=1
             if r.status_code > 400:
                 ko += 1
                 # mettre le num d'inv en mémoire quelque part avec son message
