@@ -10,3 +10,4 @@ sitemap.xml
 docs/
 .vscode/
 num_error.csv
+out/
