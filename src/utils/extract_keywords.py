@@ -6,6 +6,7 @@ from sqlalchemy import create_engine
 import sqlite3
 from googletrans import Translator, constants
 import unidecode
+import itertools
 
 OSM_TAGS_KEPT = [  "addr:city" ,  "addr:housename",  "addr:housenumber",    "addr:place",  "addr:postcode",  "addr:province",   "addr:street",  "addr:streetnumber",   "building",   "amenity",  "bridge",  "historic",  "int_name",  "int_ref",  "landuse",  "leisure",  "loc_name",  "loc_ref",  "man_made",  "military",  "name",  "nat_name",  "nat_ref",  "natural",  "office",  "official_name",  "operator",  "place",  "postal_code",  "ref",  "shop",  "short_name",  "tourism",  "waterway",  "wikipedia", "wikidata"]
 
@@ -49,8 +50,8 @@ class Connect():
 
 class keywords():
     def __init__(self, texte):
-        nltk.download('stopwords', quiet=True)
-        nltk.download('punkt', quiet=True)
+        #nltk.download('stopwords', quiet=True)
+        #nltk.download('punkt', quiet=True)
         self.texte = re.sub(r'[^\w\s]', ' .',texte.replace(" ", "."))
 
     def extract(self):
@@ -59,7 +60,7 @@ class keywords():
         keywords_extracted = r.get_ranked_phrases()
         # p sert à mettre au singulier
         p = nltk.PorterStemmer()
-        return [(p.stem(keyword)).upper().replace(" ", "_") for keyword in keywords_extracted]
+        return [j for i in [[(p.stem(keyword)).upper().replace(" ", "_"), keyword.upper()]for keyword in keywords_extracted] for j in i]
 
     def join_with_sql_referentiel(self, connexion_infos, referentielid):
         db = Connect(connexion_infos).sqlite()

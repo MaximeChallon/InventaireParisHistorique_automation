@@ -25,6 +25,7 @@ try:
 except:
     pass
 
+# ubuntu: accès au serveur: /run/user/1000/gvfs/smb-share:server=freebox-server.local,share=disque%20dur/phototheque
 csv_path = "/home/maxime/Téléchargements/PH/Requête6.csv"
 img_sourcedir = "/home/maxime/Téléchargements/PH/"
 img_outdir = "/home/maxime/Téléchargements/PH/out/"
@@ -60,7 +61,6 @@ differents_sites = """
 conn = sqlite3.connect(sql_filepath)  
 curs = conn.cursor()
 sites  = curs.execute(differents_sites).fetchall()
-conn.close()
 for site in sites:
     print("Traitement du site " +str(site[1]) + " , " + str(site[2]) + " entrées")
     requete = """
@@ -80,11 +80,11 @@ for site in sites:
         left JOIN MotsCles ON SitesMotsCles.IdsMotCle = MotsCles.Id
         left join Voies ON Voies.Id = Adresses.IdVoie
         left join Series ON Series.Id = b.IdSerie
-                 where Principale = 1 and (((b.idSerie)="""+str(site[0])+"""));
+                 where Principale = 1 and (((b.idSerie)="""+str(site[0])+"""))   ; 
     """
     entree_mdb._request_to_csv(requete, working_dir + str(site[0]) + ".csv", sql_filepath)
 
-    max = 5
+    max = 20
     min = 0
 
     with open(working_dir + str(site[0]) + ".csv", "r") as f:
@@ -98,7 +98,9 @@ for site in sites:
         liste_num_traites_succes = [] 
         for line in f_o:
             # filtrer sur seulement les lignes qui ont un fichier numérique de la photo qui existe, dont l'id n'a pas déjà été traité et dont i et l correspondent aux paramètres
-            if i <= max and l>= min and line[1] not in liste_num_traites and line[19] and os.path.exists(img_sourcedir + str(site[1]) + "/" + line[19]):
+            if i <= max and l>= min and line[1] not in liste_num_traites and line[15] and (os.path.exists(img_sourcedir + str(site[1]) + "/p_" + line[15] + ".jpg") or os.path.exists(img_sourcedir + str(site[1]) + "/p_" + line[15] + ".jpeg") or os.path.exists(img_sourcedir + str(site[1]) + "/p_" + line[15] + ".png")):
+                sys.stdout.write("\r" + "Working " + str(line[1]) )
+                sys.stdout.flush()
                 post_headers = {"ws-key": KEY_WS}
                 post_data = {"type": "PHOTO"}
                 id_metier = line[1]
@@ -202,7 +204,7 @@ for site in sites:
                 mots_cles_commentaire2 = keywords(commentaire2).join_with_sql_referentiel({'db_system': 'sqlite','db_url': '/home/maxime/dev/InventaireParisHistorique_services/app/db_finale.sqlite'},"049c90d062b5")
 
                 mots_cles_motscles = keywords(mots_cles).join_with_sql_referentiel({'db_system': 'sqlite','db_url': '/home/maxime/dev/InventaireParisHistorique_services/app/db_finale.sqlite'},"049c90d062b5")
-
+                
                 mots_cles_designation = keywords(line[3] + "." + line[2]).join_with_sql_referentiel({'db_system': 'sqlite','db_url': '/home/maxime/dev/InventaireParisHistorique_services/app/db_finale.sqlite'},"049c90d062b5")
                 try:
                     mots_base = curs.execute("""select group_concat(b.Designation)
@@ -222,6 +224,7 @@ for site in sites:
                 post_data["Auteur"] = "OUTIL DE MIGRATION AUTOMATIQUE"
                 post_data["Date_inventaire"] = (date.today()).strftime("%Y/%m/%d")
                 # générer un num inventaire avant envoi si l'instance n'existe pas encore
+                #print(post_data)
                 try:
                     num_inv = json.loads(requests.post(URL_ROOT + "/select/" + str(id_metier) ,data=json.dumps({"type":"Identifiant de la base de numérisations"}),  headers={"ws_key":KEY_WS}).content)["num_inv"]
                 except:
@@ -248,3 +251,5 @@ for site in sites:
             l += 1
         print("\n")
         #print("Numéros d'inventaire traités:"+ str(liste_num_traites_succes))
+
+conn.close()
