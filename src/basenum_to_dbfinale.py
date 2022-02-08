@@ -26,7 +26,8 @@ except:
     pass
 
 csv_path = "/home/maxime/Téléchargements/PH/Requête6.csv"
-img_sourcedir = "/home/maxime/Téléchargements/PH/2000/"
+img_sourcedir = "/home/maxime/Téléchargements/PH/"
+img_outdir = "/home/maxime/Téléchargements/PH/out/"
 mdb_filepath = "/home/maxime/Téléchargements/Phototheque.mdb"
 sql_filepath = "/home/maxime/Téléchargements/Phototheque.sqlite"
 csv_filepath = "/home/maxime/Téléchargements/Phototheque.csv"
@@ -46,15 +47,15 @@ entree_mdb = Mdb(mdb_filepath)
 #entree_mdb._to_sqlite(sql_filepath)
 
 # créer le csv à partir requete sql: boucler sur les sites afin de faire un csv par arrondissement
-# TODO: remove limit and order for complete run
+# TODO: remove limit and order for complete run and where
 differents_sites = """
     select a.Id, a.cle , count(*)
     from Series a
     inner join Sites c on c.IdSerie = a.Id
     inner join Photos b on b.IdSite = c.Id
+    where a.cle = '20000'
     group by a.cle
-    order by count(*)
-    limit 1;
+    order by count(*);
 """
 conn = sqlite3.connect(sql_filepath)  
 curs = conn.cursor()
@@ -93,9 +94,11 @@ for site in sites:
         i =0
         ok = 0
         ko = 0
-        liste_num_traites = [] # nécessaire pour sauter les doublons de lignes du fichier d'entrée
+        liste_num_traites = [] # nécessaire pour sauter les doublons de lignes du fichier d'entrée (créés à cause de multiples adresses ou mots-clés)
+        liste_num_traites_succes = [] 
         for line in f_o:
-            if i <= max and l>= min and line[1] not in liste_num_traites:
+            # filtrer sur seulement les lignes qui ont un fichier numérique de la photo qui existe, dont l'id n'a pas déjà été traité et dont i et l correspondent aux paramètres
+            if i <= max and l>= min and line[1] not in liste_num_traites and line[19] and os.path.exists(img_sourcedir + str(site[1]) + "/" + line[19]):
                 post_headers = {"ws-key": KEY_WS}
                 post_data = {"type": "PHOTO"}
                 id_metier = line[1]
@@ -222,10 +225,17 @@ for site in sites:
                         f_o = csv.writer(f)
                         f_o.writerow([line[0]])
                 else:
+                    # si succès: copier l'image dans le fichier de destination si elle n'y est pas déjà
+                    if not os.path.exists(img_outdir  + str(site[1]) + "/" + line[19]):
+                        if not os.path.exists(img_outdir  + str(site[1]) + "/"):
+                            os.system("mkdir " + img_outdir  + str(site[1]) + "/")
+                        os.system("cp " + img_sourcedir  + str(site[1]) + "/" + line[19] + " " + img_outdir  + str(site[1]) + "/" + str(num_inv) + ".jpg")
                     ok +=1
+                    liste_num_traites_succes.append(num_inv)
                 i+=1
                 liste_num_traites.append(line[1])
                 sys.stdout.write("\r" + "Process " + str(line[1]) + " -- OK : "+str(ok) +" -- KO : "+str(ko))
                 sys.stdout.flush()
             l += 1
         print("\n")
+        print("Numéros d'inventaire traités:"+ str(liste_num_traites_succes))
