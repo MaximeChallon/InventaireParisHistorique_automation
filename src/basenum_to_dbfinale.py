@@ -80,7 +80,7 @@ for site in sites:
         left JOIN MotsCles ON SitesMotsCles.IdsMotCle = MotsCles.Id
         left join Voies ON Voies.Id = Adresses.IdVoie
         left join Series ON Series.Id = b.IdSerie
-                WHERE (((b.idSerie)="""+str(site[0])+"""));
+                 where Principale = 1 and (((b.idSerie)="""+str(site[0])+"""));
     """
     entree_mdb._request_to_csv(requete, working_dir + str(site[0]) + ".csv", sql_filepath)
 
@@ -204,7 +204,16 @@ for site in sites:
                 mots_cles_motscles = keywords(mots_cles).join_with_sql_referentiel({'db_system': 'sqlite','db_url': '/home/maxime/dev/InventaireParisHistorique_services/app/db_finale.sqlite'},"049c90d062b5")
 
                 mots_cles_designation = keywords(line[3] + "." + line[2]).join_with_sql_referentiel({'db_system': 'sqlite','db_url': '/home/maxime/dev/InventaireParisHistorique_services/app/db_finale.sqlite'},"049c90d062b5")
-                motscles = list(dict.fromkeys(mots_cles_commentaire + mots_cles_commentaire2 + mots_cles_motscles + mots_cles_designation))
+                try:
+                    mots_base = curs.execute("""select group_concat(b.Designation)
+                    from PhotosMotsCles a
+                    left join MotsClesPhoto b on b.Id = a.IdpMotCle
+                    where a.IdPhoto = """+str(id_metier)+"""
+                    group by a.IdPhoto""").fetchall()[0][0]
+                    mots_cles_base = keywords(mots_base ).join_with_sql_referentiel({'db_system': 'sqlite','db_url': '/home/maxime/dev/InventaireParisHistorique_services/app/db_finale.sqlite'},"049c90d062b5")
+                except:
+                    mots_cles_base = []
+                motscles = list(dict.fromkeys(mots_cles_commentaire + mots_cles_commentaire2 + mots_cles_motscles + mots_cles_designation + mots_cles_base))
                 if motscles:    
                     post_data["Mots_cles"] = str(   motscles  )
 
@@ -238,4 +247,4 @@ for site in sites:
                 sys.stdout.flush()
             l += 1
         print("\n")
-        print("Numéros d'inventaire traités:"+ str(liste_num_traites_succes))
+        #print("Numéros d'inventaire traités:"+ str(liste_num_traites_succes))
