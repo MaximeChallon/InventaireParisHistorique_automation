@@ -60,7 +60,16 @@ class keywords():
         keywords_extracted = r.get_ranked_phrases()
         # p sert à mettre au singulier
         p = nltk.PorterStemmer()
-        return [j for i in [[(p.stem(keyword)).upper().replace(" ", "_"), keyword.upper()]for keyword in keywords_extracted] for j in i]
+        return list(set([j for i in [[(p.stem(keyword)).upper().replace(" ", "_"), keyword.upper()]for keyword in keywords_extracted] for j in i]))
+
+    def join_with_words_list(self, word_list):
+        extraits = self.extract()
+        result = []
+        for mot in word_list:
+            for e in extraits:
+                if e == mot: 
+                    result.append(e)
+        return result
 
     def join_with_sql_referentiel(self, connexion_infos, referentielid):
         db = Connect(connexion_infos).sqlite()
