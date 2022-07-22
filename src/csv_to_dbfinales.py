@@ -4,6 +4,7 @@ import os
 import dotenv
 import json
 import sys
+import sqlite3
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 dotenv.load_dotenv(os.path.join(BASE_DIR, '.env'))
@@ -11,14 +12,18 @@ dotenv.load_dotenv(os.path.join(BASE_DIR, '.env'))
 DEBUG = os.environ['DEBUG']
 KEY_WS = os.environ["KEY_WS"]
 URL_ROOT  = os.environ["URL_ROOT"]
+# la BASE_ADRESSES est nécessaire pour avoir la géolocalisation des adresses depuis la Base BANO: faire tourner le script align_adresses_bano.py si la base n'est pas disponible
+BASE_ADRESSES = BASE_DIR + "/out/base_adresses.sqlite"
+conn = sqlite3.connect(BASE_ADRESSES)  
+curs = conn.cursor()
 try:
     os.system("rm " + BASE_DIR + "/num_error.csv")
 except:
     pass
 
 csv_path = "/home/maxime/dev/InventaireParisHistorique_files/exports/Inventaire_general_phototheque.csv"
-max = 2000
-min = 4335
+max = 20000
+min = 0
 
 with open(csv_path, 'r') as f:
     f_o = csv.reader(f, delimiter = '|')
@@ -44,10 +49,33 @@ with open(csv_path, 'r') as f:
                 post_data["Ville"] = line[5]
             if line[6]:
                 post_data["Departement"] = line[6]
-            if line[7]:
-                post_data["Latitude"] = line[7]
-            if line[8]:
-                post_data["Longitude"] = line[8]
+            # recherche de la géoloc dans la base BANO
+            if line[1] and line[2] and line[5] == "PARIS":
+                r = curs.execute("""select b.lat, b.lon
+                    from rues_bano_to_ihm a
+                    inner join bano b on b.rue = a.rue_bano and b.numero = '"""+str(line[2])+"""'
+                    where a.rue_ihm = '"""+str(line[1]).replace("'", "''")+"""'""").fetchall()
+                try:
+                    lat = r[0][0] 
+                    lon = r[0][1]
+                    if lat and lon: 
+                        post_data["Latitude"] = lat
+                        post_data["Longitude"] = lon
+                    else:
+                        if line[7]:
+                            post_data["Latitude"] = line[7]
+                        if line[8]:
+                            post_data["Longitude"] = line[8]
+                except:
+                    if line[7]:
+                        post_data["Latitude"] = line[7]
+                    if line[8]:
+                        post_data["Longitude"] = line[8]
+            else:
+                if line[7]:
+                    post_data["Latitude"] = line[7]
+                if line[8]:
+                    post_data["Longitude"] = line[8]
             if line[9]:
                 post_data["Support"] = line[9]
             if line[10]:
@@ -113,3 +141,4 @@ with open(csv_path, 'r') as f:
             sys.stdout.flush()
         l += 1
     print("\n")
+conn.close()

@@ -506,6 +506,7 @@ for site in sites:
                     else :
                         post_data["Generalite"] =generalite.upper().replace('ARCHITECTURE ', '').replace(', ', '_').replace(' ET ', '_').replace('RAIRES', 'RAIRE')
                 #extraction de mots-clés
+                #TODO: db paths en environement
                 mots_cles_commentaire = keywords(commentaire).join_with_sql_referentiel({'db_system': 'sqlite','db_url': '/home/maxime/dev/InventaireParisHistorique_services/app/db_finale.sqlite'},"049c90d062b5")
 
                 mots_cles_commentaire2 = keywords(commentaire2).join_with_sql_referentiel({'db_system': 'sqlite','db_url': '/home/maxime/dev/InventaireParisHistorique_services/app/db_finale.sqlite'},"049c90d062b5")
@@ -531,7 +532,7 @@ for site in sites:
                 post_data["Auteur"] = "OUTIL DE MIGRATION AUTOMATIQUE"
                 post_data["Date_inventaire"] = (date.today()).strftime("%Y/%m/%d")
                 # générer un num inventaire avant envoi si l'instance n'existe pas encore
-                #print(post_data)
+                # print(post_data)
                 try:
                     num_inv = json.loads(requests.post(URL_ROOT + "/select/" + str(id_metier) ,data=json.dumps({"type":"Identifiant de la base de numérisations"}),  headers={"ws_key":KEY_WS}).content)["num_inv"]
                 except:
