@@ -109,11 +109,6 @@ log("Exécution de la requête pour créer le dataframe")
 df = pd.read_sql(requete, con)
 log("Dataframe créé : " + str(len(df.index)) +  " rows")
 
-#attribution du numéro d'inventaire 
-log("Attribution des numéros d'inventaire")
-df.insert(0, 'N_inventaire', range(ninv_debut_serie, ninv_debut_serie + len(df)))
-df = df.drop('n_inventaire', axis=1)
-
 #3 - nettoyage données dans df + alignement avec référentiels
 log("Trimming")
 df.applymap(lambda x: x.strip() if isinstance(x, str) else x)
@@ -333,7 +328,13 @@ def cote_phys(string):
 df['cote_physique']= df['cote_physique'].apply(cote_phys)
 
 #filtrer pour ne garder que ce qui a une date d'inventaire inférieure à l'année donnée
+log("Filtrage des données (avant "+str(annee_max_migration)+")")
 df  = df[pd.to_datetime(df['date_inventaire']).dt.year <= annee_max_migration]
+
+#attribution du numéro d'inventaire 
+log("Attribution des numéros d'inventaire")
+df.insert(0, 'N_inventaire', range(ninv_debut_serie, ninv_debut_serie + len(df)))
+df = df.drop('n_inventaire', axis=1)
 
 #suppressions et renommages
 log("Suppression de colonnes et renommages")
